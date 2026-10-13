@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-13
+
 ### Added
 
 - The cultural events of Toulouse and its suburbs (5 to 25 km around the Capitole) from the open data of
@@ -25,4 +27,5 @@ the notes of the version's GitHub Release.
 - "Download now" button, with the count of events matching each watched word.
 - Texts and documentation in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-toulouse-agenda/commits/main
+[Unreleased]: https://github.com/guim31/gladys-toulouse-agenda/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-toulouse-agenda/releases/tag/v1.0.0
