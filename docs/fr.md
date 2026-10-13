@@ -1,67 +1,188 @@
-# Template de démonstration
+# Toulouse Agenda
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Concerts, spectacles, expositions, projections, rencontres et ateliers à
+Toulouse et dans sa métropole, dans Gladys : un widget « ce soir / ce
+week-end » pour le tableau de bord, un déclencheur de scène quand un événement
+correspondant à tes mots surveillés est annoncé (un artiste, une salle,
+« jazz », « gratuit »…), et une action de scène qui écrit la liste des sorties
+du week-end, prête à envoyer.
 
-## Ce que vous obtenez
+Les événements viennent de l'open data, gratuit et sans compte : OpenAgenda
+(les agendas des bibliothèques, musées et monuments de la ville, du Quai des
+Savoirs, du Cratère, les concerts et soirées de Shotgun, les agendas des
+communes de la métropole…) et l'agenda « So Toulouse » de Toulouse Métropole.
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+## Ce qu'il te faut
 
-## Configuration
+- Gladys 5.1.0 ou plus récent.
+- Un accès Internet depuis Gladys : l'intégration télécharge l'agenda depuis
+  `public.opendatasoft.com` et `data.toulouse-metropole.fr`, et les vignettes
+  des événements depuis `img.openagenda.com`.
+- Rien d'autre : ni compte, ni clé d'API.
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+## Installation
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+1. Dans Gladys, va dans **Intégrations**, cherche **Toulouse Agenda** dans le
+   store (catégorie Services) et installe-la — ou **Installer depuis GitHub**
+   avec l'adresse `https://github.com/guim31/gladys-toulouse-agenda`.
+2. Le premier téléchargement démarre aussitôt et prend quelques secondes.
+3. Ajoute le widget **Sorties à Toulouse** à un tableau de bord, et saisis tes
+   mots surveillés dans la configuration si tu veux être prévenu des nouveaux
+   événements.
 
-## Actions
+## Réglages
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+| Réglage                    | Ce qu'il fait                                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mots surveillés            | Mots séparés par des virgules : un artiste, une salle, un style, « gratuit »… Chaque **nouvel** événement qui en contient un déclenche « Nouvel événement annoncé ». Vide : le déclencheur ne part jamais. |
+| Mots exclus                | Mots séparés par des virgules : les événements qui en contiennent un sont masqués partout (widget, résumé, déclencheur). Pratique pour ce qui ne t'intéresse pas (« recrutement », « aidants »…).          |
+| Rayon de recherche         | 5, 10, 15 ou 25 km autour du Capitole. 15 km (par défaut) couvrent l'essentiel de Toulouse Métropole : Blagnac, Colomiers, Balma, Ramonville, Tournefeuille…                                               |
+| Télécharger toutes les     | 1, 3 (par défaut), 6 ou 12 heures.                                                                                                                                                                         |
+| Langue des textes de scène | Langue des dates et libellés envoyés par le déclencheur et l'action de résumé (français par défaut). Le widget suit la langue de chaque utilisateur.                                                       |
 
-## Scènes
+Le bouton **Télécharger maintenant** télécharge l'agenda tout de suite et
+indique combien d'événements sont à venir, et combien correspondent à chaque
+mot surveillé : le moyen de vérifier un mot avant de compter dessus.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+Comment les mots sont reconnus, partout (mots surveillés, mots exclus,
+mots-clés du widget et de l'action) : sans tenir compte des majuscules ni des
+accents, par mots entiers (« rap » ne trouve pas « rapport »), plusieurs mots
+forment une expression (« jeune public »). Ils sont cherchés dans le titre, les
+mots-clés, le lieu, l'adresse, la commune, l'agenda d'origine, la description
+et le tarif. Un événement gratuit répond aussi à « gratuit », « free »,
+« gratis » et « kostenlos ».
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+## Widget « Sorties à Toulouse »
 
-## Tableau de bord
+Une liste de 8 sorties au plus, les plus proches d'abord, avec leur vignette,
+le moment et le lieu, et un badge : **Gratuit**, **Complet**, ou leur thème.
+Touche une ligne pour lire la description, les dates, l'adresse, le tarif et le
+lien vers la fiche de l'événement.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Chaque widget a ses propres réglages :
+
+- **Période** : aujourd'hui, ce soir (de 18 h à 5 h), demain, ce week-end (du
+  vendredi 18 h au dimanche minuit ; du lundi au jeudi, le week-end qui vient),
+  les 7 ou les 30 prochains jours.
+- **Thèmes** : coche ceux que tu veux (musique, spectacle, exposition, cinéma,
+  festival, en famille, rencontre, atelier, visite). Rien de coché : tous.
+- **Mots-clés** et **Communes** : séparés par des virgules ; un événement doit
+  en contenir un.
+- **Gratuit seulement**.
+- **Inclure expositions et longues séries** : désactivé par défaut, pour qu'un
+  musée ouvert tous les jours ne remplisse pas « ce soir ». Un événement est
+  une longue série quand il a plus de 7 dates ou s'étale sur plus de 14 jours.
+
+Plusieurs widgets aux réglages différents peuvent cohabiter : « Ce soir »,
+« Ce week-end · musique », « Gratuit pour les enfants cette semaine »…
+
+## Déclencheur « Nouvel événement annoncé »
+
+Se déclenche quand un **nouvel** événement de l'agenda contient l'un des mots
+surveillés de la configuration. Nouveau veut dire jamais vu par ton Gladys : le
+premier téléchargement prend seulement note de ce qui existe, en silence, comme
+un changement du rayon de recherche. Chaque événement déclenche une fois, avec
+le premier mot surveillé qu'il contient (dans l'ordre de la configuration). 20
+événements au plus par téléchargement, les plus proches d'abord.
+
+Filtres du déclencheur (tous facultatifs) :
+
+- **Mot surveillé** : l'un des mots de la configuration, écrit exactement
+  pareil. Vide : n'importe quel mot surveillé.
+- **Thème principal** : le premier thème de l'événement.
+- **Gratuit** : gratuit, ou payant / non précisé.
+- **Commune** : nom exact, par exemple `Toulouse`.
+
+Informations transmises à la scène : événement, date (par exemple « sam. 18
+oct., 20:00 »), lieu, commune, lien, mot surveillé, thème, tarif, description,
+et le début au format ISO 8601.
+
+## Action de scène « Sorties à Toulouse »
+
+Écrit la liste des sorties d'une période avec les mêmes filtres que le widget
+(période, thèmes, mots-clés, communes, gratuit seulement, longues séries) et un
+nombre de lignes (5 par défaut, 15 au plus) ; les autres sont comptées.
+Résultats disponibles pour les étapes suivantes : **Résumé** (le texte),
+**Nombre de sorties**, **Première sortie** et **Lien de la première sortie**.
+
+Exemple de résumé :
+
+```text
+Ce week-end à Toulouse : 14 sorties.
+• ven. 16 oct., 17:30 — Venez fêter Martror ! · Halle Lauragaise de Castanet-Tolosan
+• ven. 16 oct., 18:30 — Éloge de la folie · Archives municipales
+• ven. 16 oct., 18:30 — Sesilha (session musiques trad) · COMDT (Gratuit)
+Et 11 autres.
+```
+
+## Exemples de scènes
+
+- **Le week-end, le vendredi soir** : déclencheur « Chaque semaine, le
+  vendredi à 18 h » → action « Sorties à Toulouse » (période : ce week-end,
+  thèmes : musique et spectacle) → « Envoyer un message » avec le Résumé.
+- **Ne plus rater une date** : mots surveillés `Orelsan, Zénith, jazz` ;
+  déclencheur « Nouvel événement annoncé » (sans filtre) → « Envoyer un
+  message » : « Nouveau à Toulouse : {événement}, {date} à {lieu} — {lien} ».
+- **Sorties gratuites pour les enfants** : déclencheur « Chaque semaine », le
+  mercredi et le samedi à 9 h → action « Sorties à Toulouse » (période :
+  aujourd'hui, thème : en famille, gratuit seulement) → condition « Nombre de
+  sorties » supérieur à 0 → envoyer le Résumé.
+
+## Thèmes
+
+OpenAgenda n'a pas de catégorie commune, seulement les mots-clés des
+organisateurs : les thèmes sont déduits du titre, des mots-clés et du nom de
+l'agenda (et des catégories de So Toulouse). Un événement peut avoir plusieurs
+thèmes, ou aucun : un événement sans thème n'apparaît que si aucun thème n'est
+coché. Le **thème principal** utilisé par le déclencheur est le premier dans
+cet ordre : musique, spectacle, exposition, cinéma, festival, en famille,
+rencontre, atelier, visite.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **Le widget affiche « Premier téléchargement en cours »** : Gladys n'atteint
+  pas `public.opendatasoft.com` ni `data.toulouse-metropole.fr`. L'intégration
+  réessaie toutes les 15 minutes ; les logs de l'intégration disent pourquoi.
+- **« L'agenda n'a pas pu être téléchargé »** sous la liste : les deux sources
+  ont échoué au dernier téléchargement ; la liste montre les événements du
+  précédent.
+- **Le déclencheur ne part jamais** : vérifie qu'un mot surveillé est saisi,
+  puis appuie sur **Télécharger maintenant** : le message compte les événements
+  de chaque mot. Seuls les événements annoncés après la saisie du mot
+  déclenchent la scène.
+- **Un événement manque** : il n'est peut-être pas sur OpenAgenda (chaque lieu
+  choisit où il publie), hors du rayon de recherche, annulé, seulement en
+  ligne, ou masqué par un mot exclu.
+
+## Limites
+
+- La couverture dépend des organisateurs : OpenAgenda porte les
+  bibliothèques, musées et de nombreux lieux de la ville, mais toutes les
+  salles de concert n'y publient pas. L'open data So Toulouse de Toulouse
+  Métropole n'est plus mis à jour depuis décembre 2025 (en octobre 2026) : il
+  est lu quand même, pour le jour où il reviendra.
+- Les titres et descriptions restent en français, tels que les organisateurs
+  les ont écrits.
+- Les heures sont lues à l'heure de Toulouse, quel que soit le fuseau de
+  Gladys.
+- Les événements de France Travail sont écartés : ce ne sont pas des sorties.
+
+## Sources des données, licence et quotas
+
+- Événements publics OpenAgenda, via le portail open data d'Opendatasoft
+  (`evenements-publics-openagenda`), Licence Ouverte / Etalab.
+- « Agenda des manifestations culturelles - So Toulouse », open data de
+  Toulouse Métropole, Licence Ouverte / Etalab 2.0.
+
+La source et la date du dernier téléchargement figurent dans le détail de
+chaque événement, comme le demande la licence. Chaque téléchargement fait une
+requête par source (environ 3 Mo), toutes les 3 heures par défaut : très en
+dessous des quotas anonymes des portails (des dizaines de milliers de requêtes
+par jour).
+
+## Vie privée
+
+L'intégration n'envoie rien sur toi : elle télécharge des données publiques.
+Elle garde dans son volume `/data` les événements du dernier téléchargement et
+les identifiants des événements déjà vus. Tes mots surveillés restent dans
+Gladys.

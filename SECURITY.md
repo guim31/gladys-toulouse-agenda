@@ -30,6 +30,16 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+The integration only downloads public data: the OpenAgenda export of
+`public.opendatasoft.com`, the So Toulouse dataset of
+`data.toulouse-metropole.fr` and the event thumbnails of the OpenAgenda image
+hosts (`img.openagenda.com`, `cdn.openagenda.com`, `cibul.s3.amazonaws.com`,
+https only, no other host). It holds no secret and asks for none. Its `/data`
+volume keeps `state.json`: the events of the last download (public data) and
+the ids of the events already seen. The watched and hidden words stay in the
+Gladys configuration.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and the third-party services the integration talks to (OpenAgenda,
+Opendatasoft, Toulouse Métropole).

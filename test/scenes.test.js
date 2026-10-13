@@ -1,93 +1,86 @@
+// -----------------------------------------------------------------------------
+// The "Outings in Toulouse" scene action: a text ready to send, its count and
+// first outing; in the language of the configuration.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { DEVICE_BLUEPRINTS } from '../src/devices/index.js';
-import { MOTION_DETECTED_TRIGGER, motionSensor } from '../src/devices/motionSensor.js';
-import { SCENE_ACTIONS } from '../src/scenes.js';
-import { normalizeConfig } from '../src/config.js';
+import { NOW, createWorld } from './helpers/world.js';
 
-const manifest = JSON.parse(
-  await readFile(new URL('../gladys-assistant-integration.json', import.meta.url), 'utf8'),
-);
-const config = normalizeConfig();
-
-const declarationOf = (list, key) => manifest[list].find((entry) => entry.key === key);
-const keysOf = (list) => (list ?? []).map((entry) => entry.key);
-const deviceIdOf = (gladys, key) =>
-  DEVICE_BLUEPRINTS.find((bp) => bp.key === key).deviceExternalId(gladys);
-
-// Let the async interval callback run to completion.
-const flush = () => new Promise((resolve) => setImmediate(resolve));
-
-test('the motion sensor fires one motion_detected event per detection, none on the clear', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'one detection, one event');
-    assert.equal(gladys.fake.sceneEvents[0].key, MOTION_DETECTED_TRIGGER);
-    assert.equal(gladys.fake.states.at(-1).state, 1, 'the state is still published');
-
-    t.mock.timers.tick(10_000);
-    await flush();
-    assert.equal(gladys.fake.states.at(-1).state, 0, 'the detection is cleared');
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'the clear fires no event');
-  } finally {
-    stopPush();
-  }
-});
-
-test('motion_detected data only carries keys the trigger declares', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-  } finally {
-    stopPush();
-  }
-  const [{ data }] = gladys.fake.sceneEvents;
-  const trigger = declarationOf('scene_triggers', MOTION_DETECTED_TRIGGER);
-  // The core keeps the `fields` keys (filters) and the `variables` keys
-  // (exposed to the scene): any other key would be silently dropped.
-  const declared = [...keysOf(trigger.fields), ...keysOf(trigger.variables)];
-  for (const [key, value] of Object.entries(data)) {
-    assert.ok(declared.includes(key), `data.${key} is not declared, the core would drop it`);
-    assert.ok(value === null || typeof value !== 'object', `data.${key} must be a primitive`);
-  }
-  // A `"source": "devices"` filter stores a device external_id.
-  assert.equal(data.device, deviceIdOf(gladys, 'motion-sensor'));
-  const targets = trigger.fields.find((field) => field.key === 'target').options;
-  assert.ok(
-    targets.some((option) => option.value === data.target),
-    `data.target "${data.target}" must be one of the filter options`,
+test('this weekend, five outings listed, the others counted', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  const outputs = await world.summary({});
+  assert.equal(outputs.count, 14);
+  assert.equal(outputs.first_title, 'Venez fêter Martror !');
+  assert.equal(
+    outputs.first_url,
+    'https://openagenda.com/mervilla/events/venez-feter-martror-4234212',
+  );
+  assert.equal(
+    outputs.summary,
+    [
+      'Ce week-end à Toulouse : 14 sorties.',
+      '• ven. 16 oct., 17:30 — Venez fêter Martror ! · Halle Lauragaise de Castanet-Tolosan',
+      '• ven. 16 oct., 18:30 — Éloge de la folie · Archives municipales',
+      '• ven. 16 oct., 18:30 — Sesilha (session musiques trad) · COMDT (Gratuit)',
+      "• ven. 16 oct., 20:30 — Saison musicale - Les Orients d'Occitanie - Lakhdar Hanou · Chapelle des Carmélites",
+      '• ven. 16 oct., 21:00 — GACHA EMPEGA EL HILLAL · La Cave Poésie René-Gouzenne',
+      'Et 9 autres.',
+    ].join('\n'),
   );
 });
 
-test('identify_device signals the chosen device and returns the declared outputs', async () => {
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'light') },
-    config,
+test('filters, period and length; the language of the configuration', async (t) => {
+  const world = await createWorld({ config: { language: 'en' } });
+  t.after(() => world.app.stop());
+  const music = await world.summary({
+    period: 'week',
+    themes: ['music'],
+    free_only: true,
+    max_items: 1,
   });
-  assert.deepEqual(outputs, { signalled: true });
-  const declared = keysOf(declarationOf('scene_actions', 'identify_device').outputs);
-  for (const key of Object.keys(outputs)) {
-    assert.ok(declared.includes(key), `output "${key}" is not declared, the core would drop it`);
-  }
+  assert.equal(
+    music.summary,
+    [
+      'Next 7 days in Toulouse: 2 outings.',
+      '• tomorrow, 20:00 — Concert de Professeurs · Auditorium Saint-Pierre des Cuisines (Free)',
+      'And 1 more.',
+    ].join('\n'),
+  );
+  const nothing = await world.summary({ period: 'tonight', keywords: 'opéra baroque' });
+  assert.deepEqual(nothing, {
+    summary: 'Tonight in Toulouse: nothing matches these filters.',
+    count: 0,
+    first_title: '',
+    first_url: '',
+  });
+  // Out-of-range or malformed values fall back to the defaults.
+  const fallback = await world.summary({ period: 'someday', max_items: 'x' });
+  assert.equal(fallback.count, 14);
+  assert.equal(fallback.summary.split('\n').length, 1 + 5 + 1);
+  const capped = await world.summary({ period: 'month', max_items: 99, ongoing: true });
+  assert.equal(capped.summary.split('\n').length, 1 + 15 + 1);
 });
 
-test('identify_device reports a device that cannot signal itself through its output', async () => {
-  // Not a failure: a scene action is never a condition, the scene author
-  // gates the following actions on the output instead.
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'weather-station') },
-    config,
+test('the same text in German and Spanish, and before the first download', async (t) => {
+  const world = await createWorld({ config: { language: 'de' } });
+  t.after(() => world.app.stop());
+  const tonight = await world.summary({ period: 'tonight' });
+  assert.match(tonight.summary, /^Heute Abend in Toulouse: 3 Veranstaltungen\.\n• heute, 18:00 — /);
+  await world.fake.configUpdated({ language: 'es' });
+  const tomorrow = await world.summary({ period: 'tomorrow', max_items: 2 });
+  assert.match(tomorrow.summary, /^Mañana en Toulouse: \d+ salidas\.\n• mañana, /);
+  const waiting = await createWorld({
+    now: NOW,
+    config: { language: 'fr' },
+    web: { openagenda: () => new Error('offline'), soToulouse: () => new Error('offline') },
   });
-  assert.deepEqual(outputs, { signalled: false });
+  t.after(() => waiting.app.stop());
+  assert.deepEqual(await waiting.summary({}), {
+    summary: "L'agenda de Toulouse n'est pas encore téléchargé.",
+    count: 0,
+    first_title: '',
+    first_url: '',
+  });
 });

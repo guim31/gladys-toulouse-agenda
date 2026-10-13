@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-toulouse-agenda",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Gladys Assistant integration: concerts, shows and exhibitions in Toulouse from open data (OpenAgenda, Toulouse Métropole), as a dashboard widget, scene trigger and scene action.",
   "type": "module",
   "main": "index.js",
   "scripts": {
