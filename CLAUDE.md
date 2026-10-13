@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/catalog.test.js          # one file
+node --test --test-name-pattern "weekend" # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -30,17 +30,28 @@ pushing.
 
 ## Architecture
 
+A `provider` integration: no device, a widget, a scene trigger and a scene
+action, fed by public open data downloaded on the container's own timer.
+
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js registers the handlers)
+src/app.js                        handlers, periodic download, scene events, connection status
+src/catalog.js                    both sources merged and persisted, "new event" detection
+src/sources/opendatasoft.js       Explore API v2.1 `exports/json` client (size and time bounds)
+src/sources/openagenda.js         OpenAgenda records -> events (+ what is dropped)
+src/sources/sotoulouse.js         So Toulouse records -> events (whole days)
+src/events.js                     event model: free, long runs, search text, horizon
+src/themes.js                     theme keys and the words that map to them
+src/filters.js                    periods (tonight, weekend…) read in Toulouse, filters
+src/widgets.js, src/images.js     "outings" widget, thumbnails served to the core
+src/scenes.js                     "new_event" trigger data, "outings_summary" action
+src/i18n.js, src/time.js          texts in four languages, Europe/Paris time
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/store.js                      /data/state.json
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/fixtures/                    real records of both sources (October 2026)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +81,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, widget content, manifest
+  texts, and `docs/{en,fr,de,es}.md`, kept in sync. `test/i18n.test.js` checks
+  it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -213,3 +226,44 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Cette intégration : Toulouse Agenda
+
+**Sources** (Opendatasoft Explore API v2.1, gratuit, sans clé, une requête `exports/json` par source et par
+téléchargement, environ 3 Mo) :
+
+- **OpenAgenda** via `public.opendatasoft.com`, jeu `evenements-publics-openagenda` (Licence Ouverte).
+  C'est la source vivante (≈ 1 500 événements à venir à 15 km du Capitole, mis à jour chaque jour).
+  Filtre serveur : `within_distance(location_coordinates, geom'POINT(lon lat)', Nkm) and lastdate_end >= now()`.
+  `timings`, `status` et `attendancemode` sont des **chaînes JSON** à parser ; `title_fr` peut être `null`
+  (titre seulement en occitan) ; il reste des entrées de test de 2023 (« test », « test charlotte ») au
+  Zénith en 2028 ; statut 3/4/6 (en ligne, reporté, annulé) et présence 2 (en ligne seulement) écartés ;
+  l'agenda « Mes événements France Travail » (job dating) est écarté en dur. Pas de catégorie commune : les
+  thèmes sont déduits des mots (`src/themes.js`).
+- **So Toulouse** via `data.toulouse-metropole.fr`, jeu `agenda-des-manifestations-culturelles-so-toulouse`
+  (Licence Ouverte 2.0) : la source nommée par le cahier des charges, mais **figée depuis le 31/12/2025**
+  (214 fiches, une seule à venir en octobre 2026). Dates sans heure (journées entières), horaires en texte
+  libre. Gardée en seconde source, dédoublonnée avec OpenAgenda (titre normalisé + premier jour).
+- Quotas anonymes vus dans les en-têtes : 20 000 requêtes/jour (Toulouse Métropole), 10 M (public ODS).
+
+**Choix et pièges** :
+
+- Type `provider` plutôt que `calendar` : des centaines d'événements suggérés n'ont pas leur place dans le
+  calendrier de l'utilisateur, ni dans `calendar.event-is-coming` (scènes déclenchées pour des sorties où
+  l'on ne va pas).
+- Heure de Toulouse (`Europe/Paris`) partout, quel que soit `TZ` : les événements sont à Toulouse.
+- « Nouveau » = identifiant jamais vu (`/data/state.json`, oubli après 60 jours) ; le premier
+  téléchargement d'une source, ou un changement de rayon, **amorce en silence**. Un événement qui ne fait
+  qu'entrer dans la fenêtre n'est pas nouveau : on télécharge **tout l'à-venir**, sans horizon.
+- Filtres de scène = égalité et appartenance : les mots-clés libres ne peuvent pas être un filtre du
+  déclencheur. D'où les **mots surveillés** dans la configuration, et un filtre `keyword` qui vaut le mot tel
+  qu'écrit dans la configuration. Un même événement ne part qu'une fois (premier mot trouvé), 20 au plus par
+  téléchargement. Deux appels concurrents (minuteur + bouton) partagent le même téléchargement : l'annonce
+  est faite une seule fois (`WeakSet` du rapport).
+- Une clé présente à la fois dans `fields` et `variables` est convertie au type de chacun : `free` (filtre
+  `select` yes/no) et `theme` (clé) ne sont **pas** des variables ; la scène lit `price` et `theme_label`.
+- Les vignettes (200 × 200 JPEG ≈ 10 Ko) sont servies par `onWidgetGetImage`, téléchargées seulement depuis
+  les hôtes d'images OpenAgenda, clé = empreinte de l'adresse.
+- Une liste `card-list` en `display: list` montre le sous-titre : on y met « quand · où » déjà formaté.
+- `git grep` sur `ref/Gladys` peut lancer un `git gc` automatique en tâche de fond : sans effet sur le
+  contenu, mais à savoir (le clone est partagé).

@@ -1,61 +1,178 @@
-# Demo Devices Template
+# Toulouse Agenda
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Concerts, shows, exhibitions, screenings, talks and workshops in Toulouse and
+its suburbs, in Gladys: a dashboard widget "tonight / this weekend", a scene
+trigger when an event matching your watched words is announced (an artist, a
+venue, "jazz", "gratuit"…), and a scene action that writes the list of the
+weekend's outings, ready to send.
 
-## What you get
+The events come from open data, free and without an account: OpenAgenda (the
+agendas of the city libraries, museums and monuments, the Quai des Savoirs, the
+Cratère, Shotgun's concerts and club nights, the suburbs' town agendas…) and
+the "So Toulouse" agenda of Toulouse Métropole.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- Gladys 5.1.0 or later.
+- Internet access from Gladys: the integration downloads the agenda from
+  `public.opendatasoft.com` and `data.toulouse-metropole.fr`, and the event
+  thumbnails from `img.openagenda.com`.
+- Nothing else: no account, no API key.
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+## Installation
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+1. In Gladys, go to **Integrations**, find **Toulouse Agenda** in the store
+   (category Services) and install it — or **Install from GitHub** with the
+   address `https://github.com/guim31/gladys-toulouse-agenda`.
+2. The first download starts at once and takes a few seconds.
+3. Add the **Outings in Toulouse** widget to a dashboard, and type your
+   watched words in the configuration if you want to be told about new
+   events.
 
-## Actions
+## Settings
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+| Setting                     | What it does                                                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Watched words               | Comma-separated words: an artist, a venue, a style, "gratuit"… Each **new** event containing one fires the "New event announced" trigger. Empty: the trigger never fires. |
+| Hidden words                | Comma-separated words: the events containing one are hidden everywhere (widget, summary, trigger). Handy for what does not interest you ("recrutement", "aidants"…).      |
+| Search radius               | 5, 10, 15 or 25 km around the Capitole. 15 km (default) covers most of Toulouse Métropole: Blagnac, Colomiers, Balma, Ramonville, Tournefeuille…                          |
+| Download every              | 1, 3 (default), 6 or 12 hours.                                                                                                                                            |
+| Language of the scene texts | Language of the dates and labels sent by the trigger and the summary action (French by default). The widget follows the language of each user.                            |
 
-## Scenes
+The **Download now** button downloads the agenda at once and tells how many
+events are to come, and how many match each watched word: the way to check a
+word before relying on it.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+How words match, everywhere (watched words, hidden words, keywords of the
+widget and the action): case and accents are ignored, whole words only ("rap"
+does not match "rapport"), several words match as a phrase ("jeune public").
+They are looked for in the title, the keywords, the venue, the address, the
+town, the source agenda, the description and the price. A free event also
+answers to "gratuit", "free", "gratis" and "kostenlos".
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+## Dashboard widget "Outings in Toulouse"
 
-## Dashboard
+A list of up to 8 outings, soonest first, with their thumbnail, when and where
+they happen, and a badge: **Free**, **Sold out**, or their theme. Tap a line
+to read the description, the dates, the address, the price and the link to the
+event page.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+Each widget has its own settings:
+
+- **Period**: today, tonight (18:00 to 05:00), tomorrow, this weekend (Friday
+  18:00 to Sunday midnight; from Monday to Thursday, the coming weekend), the
+  next 7 days or the next 30 days.
+- **Themes**: tick the ones you want (music, show, exhibition, cinema,
+  festival, family, talk, workshop, visit). Nothing ticked: all of them.
+- **Keywords** and **Towns**: comma-separated; an event needs one of them.
+- **Free only**.
+- **Include exhibitions and long runs**: off by default, so that a museum
+  open every day does not fill "tonight". An event is a long run when it has
+  more than 7 dates or spans more than 14 days.
+
+Several widgets with different settings can sit side by side: "Tonight", "This
+weekend · music", "Free for the kids this week"…
+
+## Scene trigger "New event announced"
+
+Fires when a **new** event of the agenda contains one of the watched words of
+the configuration. New means never seen before by your Gladys: the first
+download only takes note of what exists, silently, and so does a change of the
+search radius. Each event fires once, with the first watched word it contains
+(in the order of the configuration). At most 20 events per download, the
+soonest first.
+
+Filters of the trigger (each one optional):
+
+- **Watched word**: one of the words of the configuration, written exactly as
+  there. Empty: any watched word.
+- **Main theme**: the first theme of the event.
+- **Free**: free, or paid / not specified.
+- **Town**: exact name, e.g. `Toulouse`.
+
+Information passed on to the scene: event, date (e.g. "Sat 18 Oct, 20:00"),
+place, town, link, watched word, theme, price, description, and the start as
+an ISO 8601 date.
+
+## Scene action "Outings in Toulouse"
+
+Writes the list of the outings of a period with the same filters as the widget
+(period, themes, keywords, towns, free only, long runs) and a number of lines
+(5 by default, 15 at most); the others are counted. Results available to the
+following steps: **Summary** (the text), **Number of outings**, **First
+outing** and **Link of the first outing**.
+
+Example of summary:
+
+```text
+Ce week-end à Toulouse : 14 sorties.
+• ven. 16 oct., 17:30 — Venez fêter Martror ! · Halle Lauragaise de Castanet-Tolosan
+• ven. 16 oct., 18:30 — Éloge de la folie · Archives municipales
+• ven. 16 oct., 18:30 — Sesilha (session musiques trad) · COMDT (Gratuit)
+Et 11 autres.
+```
+
+## Scene examples
+
+- **The weekend on Friday evening**: trigger "Every week, Friday at 18:00" →
+  action "Outings in Toulouse" (period: this weekend, themes: music and show)
+  → "Send a message" with the Summary.
+- **Never miss a date**: watched words `Orelsan, Zénith, jazz`; trigger "New
+  event announced" (no filter) → "Send a message": "New in Toulouse: {event},
+  {date} at {place} — {link}".
+- **Free outings for the kids**: trigger "Every week" on Wednesday and Saturday at
+  09:00 → action "Outings in Toulouse" (period: today, theme: family, free
+  only) → condition "Number of outings" above 0 → send the Summary.
+
+## Themes
+
+OpenAgenda has no common category, only the organisers' keywords: the themes
+are deduced from the title, the keywords and the agenda name (and from the
+categories of So Toulouse). An event can have several themes, or none: an event
+without a theme only shows when no theme is ticked. The **main theme** used by
+the trigger is the first one in this order: music, show, exhibition, cinema,
+festival, family, talk, workshop, visit.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **The widget says "First download in progress"**: Gladys cannot reach
+  `public.opendatasoft.com` or `data.toulouse-metropole.fr`. The integration
+  tries again every 15 minutes; the integration logs say why.
+- **"The agenda could not be downloaded"** under the list: both sources failed
+  at the last download; the list shows the events of the previous one.
+- **The trigger never fires**: check that a watched word is set, then press
+  **Download now**: the message counts the events matching each word. Only
+  events announced after the word was typed fire the trigger.
+- **An event is missing**: it is perhaps not on OpenAgenda (each venue chooses
+  where to publish), outside the search radius, cancelled, online only, or
+  hidden by a hidden word.
+
+## Limits
+
+- Coverage depends on the organisers: OpenAgenda carries the city's
+  libraries, museums and many venues, but not every concert hall publishes
+  there. The So Toulouse open data of Toulouse Métropole has not been updated
+  since December 2025 (as of October 2026): it is read anyway, for the day it
+  comes back.
+- Titles and descriptions stay in French, as the organisers wrote them.
+- Times are read in Toulouse time, whatever the time zone of Gladys.
+- The events of the job centre (France Travail) are left out: they are not
+  outings.
+
+## Data sources, licence and quotas
+
+- OpenAgenda public events, through the Opendatasoft open data portal
+  (`evenements-publics-openagenda`), Licence Ouverte / Etalab.
+- "Agenda des manifestations culturelles - So Toulouse", Toulouse Métropole
+  open data, Licence Ouverte / Etalab 2.0.
+
+The source and the date of the last download are shown in the details of each
+event, as the licence asks. Each download is one request per source (about 3
+MB), every 3 hours by default: far below the anonymous quotas of the portals
+(tens of thousands of requests a day).
+
+## Privacy
+
+The integration sends nothing about you: it downloads public data. It stores
+in its `/data` volume the events of the last download and the ids of the
+events already seen. Your watched words stay in Gladys.
