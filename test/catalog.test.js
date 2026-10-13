@@ -106,7 +106,7 @@ test('no watched word, no announcement; hidden words hide everywhere', async (t)
 test('at most MAX_ANNOUNCED scene events per download, the soonest first', async (t) => {
   const world = await createWorld({
     config: { watch_keywords: 'Toulouse' },
-    web: { openagenda: [] },
+    web: { openagenda: OPENAGENDA_RECORDS.slice(0, 1) },
   });
   t.after(() => world.app.stop());
   world.web.routes.openagenda = OPENAGENDA_RECORDS;

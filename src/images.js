@@ -103,9 +103,25 @@ export class ImageCache {
       await response.body?.cancel().catch(() => {});
       throw new Error('Picture too large');
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length === 0 || bytes.length > MAX_BYTES) {
-      throw new Error(bytes.length === 0 ? 'Empty picture' : 'Picture too large');
+    // Counted while it arrives: a missing Content-Length is no way around the cap.
+    const chunks = [];
+    let size = 0;
+    try {
+      for await (const chunk of response.body ?? []) {
+        size += chunk.byteLength;
+        if (size > MAX_BYTES) {
+          throw new Error('Picture too large');
+        }
+        chunks.push(Buffer.from(chunk));
+      }
+    } catch (err) {
+      throw err.message === 'Picture too large'
+        ? err
+        : new Error('Picture unavailable (network)', { cause: err });
+    }
+    const bytes = Buffer.concat(chunks);
+    if (bytes.length === 0) {
+      throw new Error('Empty picture');
     }
     if (!imageFormat(bytes)) {
       throw new Error('Not a PNG, JPEG or WebP picture');

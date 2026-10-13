@@ -20,6 +20,11 @@ export function createStore(directory = process.env.DATA_DIR || '/data') {
   const file = join(directory, 'state.json');
   let state = {};
   let warned = false;
+  // Nothing is written before the file was read: a stop while Gladys is
+  // still unreachable must not replace the saved state with an empty one.
+  let loaded = false;
+  // One write at a time: two would share the temporary file.
+  let writing = Promise.resolve();
 
   return {
     async load() {
@@ -32,6 +37,8 @@ export function createStore(directory = process.env.DATA_DIR || '/data') {
         if (err.code !== 'ENOENT') {
           logger.warn(`Could not read ${file}, starting afresh (${err.code ?? err.name})`);
         }
+      } finally {
+        loaded = true;
       }
     },
     get(key) {
@@ -44,20 +51,28 @@ export function createStore(directory = process.env.DATA_DIR || '/data') {
         state[key] = value;
       }
     },
-    async save() {
-      try {
-        await mkdir(directory, { recursive: true });
-        await writeFile(`${file}.tmp`, JSON.stringify({ version: VERSION, data: state }));
-        await rename(`${file}.tmp`, file);
-        warned = false;
-      } catch (err) {
-        if (!warned) {
-          warned = true;
-          logger.warn(
-            `Could not write ${file} (${err.code ?? err.name}): a restart will download everything again`,
-          );
-        }
+    save() {
+      if (!loaded) {
+        return Promise.resolve();
       }
+      writing = writing.then(() => write());
+      return writing;
     },
   };
+
+  async function write() {
+    try {
+      await mkdir(directory, { recursive: true });
+      await writeFile(`${file}.tmp`, JSON.stringify({ version: VERSION, data: state }));
+      await rename(`${file}.tmp`, file);
+      warned = false;
+    } catch (err) {
+      if (!warned) {
+        warned = true;
+        logger.warn(
+          `Could not write ${file} (${err.code ?? err.name}): a restart will download everything again`,
+        );
+      }
+    }
+  }
 }

@@ -80,6 +80,7 @@ export function registerHandlers(gladys, deps = {}) {
   }
 
   async function announce(entries) {
+    let failed = 0;
     for (const entry of entries) {
       try {
         await gladys.publishSceneEvent(
@@ -87,13 +88,18 @@ export function registerHandlers(gladys, deps = {}) {
           newEventData(entry, config.language, now()),
         );
       } catch (err) {
+        // One refused event does not cost the others.
+        failed += 1;
         problems.fail('announce', `Could not send a new event to the scenes: ${err.message}`);
-        return;
       }
     }
-    problems.recover('announce', 'New events reach the scenes again');
-    if (entries.length > 0) {
-      logger.info(`${entries.length} new event(s) matching the watched words sent to the scenes`);
+    if (failed === 0) {
+      problems.recover('announce', 'New events reach the scenes again');
+    }
+    if (entries.length > failed) {
+      logger.info(
+        `${entries.length - failed} new event(s) matching the watched words sent to the scenes`,
+      );
     }
   }
 
@@ -165,7 +171,12 @@ export function registerHandlers(gladys, deps = {}) {
     try {
       config = normalizeConfig(await gladys.getConfig());
     } catch (err) {
+      // The SDK keeps the configuration it read when authenticating: better
+      // than the defaults, which would forget the watched words and radius.
       logger.error(`Could not read the configuration: ${err.message}`);
+      if (gladys.config && typeof gladys.config === 'object') {
+        config = normalizeConfig(gladys.config);
+      }
     }
     catalog.rebuild();
     if (catalog.ready) {

@@ -19,7 +19,7 @@ import {
   SUMMARY_MAX_ITEMS,
 } from '../src/scenes.js';
 import { DEFAULT_PERIOD, OUTINGS_WIDGET } from '../src/widgets.js';
-import { createWorld } from './helpers/world.js';
+import { OPENAGENDA_RECORDS, createWorld } from './helpers/world.js';
 
 const manifest = JSON.parse(
   await readFile(new URL('../gladys-assistant-integration.json', import.meta.url), 'utf8'),
@@ -86,10 +86,9 @@ test('the trigger: its filters are the keys the code sends, its variables too', 
   // Fire one, and compare with the declaration.
   const world = await createWorld({
     config: { watch_keywords: 'concert' },
-    web: { openagenda: [] },
+    web: { openagenda: OPENAGENDA_RECORDS.slice(0, 1) },
   });
   t.after(() => world.app.stop());
-  const { OPENAGENDA_RECORDS } = await import('./helpers/world.js');
   world.web.routes.openagenda = OPENAGENDA_RECORDS;
   await world.download();
   const [{ data }] = world.fake.sceneEvents;

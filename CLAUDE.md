@@ -267,3 +267,8 @@ téléchargement, environ 3 Mo) :
 - Une liste `card-list` en `display: list` montre le sous-titre : on y met « quand · où » déjà formaté.
 - `git grep` sur `ref/Gladys` peut lancer un `git gc` automatique en tâche de fond : sans effet sur le
   contenu, mais à savoir (le clone est partagé).
+- Relecture du 13/10 : ne jamais écrire `state.json` avant de l'avoir lu (un SIGTERM pendant que Gladys est
+  injoignable l'effaçait), sérialiser les écritures (fichier `.tmp` commun), un `publishSceneEvent` refusé ne
+  doit pas faire perdre les suivants (déjà marqués vus), une chaîne de données de scène fait 1000 caractères
+  au plus (liens plus longs omis), un changement de rayon pendant un téléchargement en relance un après lui,
+  les identifiants d'une source en panne ne vieillissent pas.

@@ -33,7 +33,7 @@ test('the same new event reaches the scenes once, even when two downloads overla
   const { OPENAGENDA_RECORDS } = await import('./helpers/world.js');
   const world = await createWorld({
     config: { watch_keywords: 'concert' },
-    web: { openagenda: [] },
+    web: { openagenda: OPENAGENDA_RECORDS.slice(0, 1) },
   });
   t.after(() => world.app.stop());
   world.web.routes.openagenda = OPENAGENDA_RECORDS;

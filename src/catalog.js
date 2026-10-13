@@ -16,6 +16,7 @@ import { fetchSoToulouse } from './sources/sotoulouse.js';
 import { searchText, upcomingOccurrences } from './events.js';
 import { containsWords, firstMatch, normalize } from './text.js';
 import { DAY_MS, localParts } from './time.js';
+import { isAllowedImageUrl } from './images.js';
 
 const logger = createLogger({ name: 'catalog' });
 
@@ -25,6 +26,8 @@ export const SOURCES = ['openagenda', 'so_toulouse'];
 export const MAX_ANNOUNCED = 20;
 /** An id not seen for this long is forgotten. */
 const SEEN_TTL_MS = 60 * DAY_MS;
+
+const ID_PREFIXES = { openagenda: 'oa:', so_toulouse: 'st:' };
 
 const FETCHERS = { openagenda: fetchOpenAgenda, so_toulouse: fetchSoToulouse };
 
@@ -89,10 +92,24 @@ export class Catalog {
    * @returns {Promise<{ total: number, counts: Record<string, number>, errors: Record<string, string>, announced: object[], watched: Record<string, number> }>}
    */
   refresh() {
-    this.running ??= this.download().finally(() => {
-      this.running = null;
-    });
-    return this.running;
+    const radius = this.getConfig().radius_km;
+    if (this.running && this.runningRadius === radius) {
+      return this.running;
+    }
+    // Nothing running, or a download of another area (the radius changed
+    // meanwhile): a new download, after the one in progress.
+    const after = this.running ? this.running.catch(() => {}) : Promise.resolve();
+    const current = after.then(() => this.download());
+    this.running = current;
+    this.runningRadius = radius;
+    current
+      .finally(() => {
+        if (this.running === current) {
+          this.running = null;
+        }
+      })
+      .catch(() => {});
+    return current;
   }
 
   async download() {
@@ -133,7 +150,9 @@ export class Catalog {
     const seeded = { ...(this.store.get('seeded') ?? {}) };
     for (const [source, events] of Object.entries(fresh)) {
       const area = String(radiusKm);
-      const silent = seeded[source] !== area;
+      // A new area, or a source that had nothing (a dataset coming back to
+      // life): take note silently rather than announce its whole content.
+      const silent = seeded[source] !== area || this.bySource[source].length === 0;
       for (const event of events) {
         if (!silent && seen[event.id] === undefined) {
           candidates.push(event);
@@ -148,7 +167,13 @@ export class Catalog {
       seeded[source] = area;
       this.bySource[source] = events;
     }
+    // Only the ids of the sources just read age: a source down for weeks
+    // keeps its own, or its first success would announce old events.
+    const freshPrefixes = Object.keys(fresh).map((source) => ID_PREFIXES[source]);
     for (const [id, at] of Object.entries(seen)) {
+      if (!freshPrefixes.some((prefix) => id.startsWith(prefix))) {
+        continue;
+      }
       if (!Number.isFinite(at) || now - at > SEEN_TTL_MS) {
         delete seen[id];
       }
@@ -194,7 +219,9 @@ export class Catalog {
           continue;
         }
         const event = { ...stored, occurrences };
-        const key = `${normalize(event.title)}|${localParts(occurrences[0][0]).date}`;
+        // The day it is seen from: a run already started counts from today,
+        // so a whole-day So Toulouse copy meets its OpenAgenda twin.
+        const key = `${normalize(event.title)}|${localParts(Math.max(occurrences[0][0], now)).date}`;
         if (keys.has(key)) {
           continue;
         }
@@ -209,7 +236,7 @@ export class Catalog {
     this.visible = merged;
     this.thumbnails = new Map(
       merged
-        .filter((event) => event.thumbnail)
+        .filter((event) => event.thumbnail && isAllowedImageUrl(event.thumbnail))
         .map((event) => [imageKey(event.thumbnail), event.thumbnail]),
     );
   }

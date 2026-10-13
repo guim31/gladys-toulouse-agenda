@@ -39,7 +39,8 @@ export function newEventData({ event, keyword }, language, now) {
     date: formatWhen({ start, end, allDay: event.allDay }, language, now),
     start: new Date(start).toISOString(),
     venue: event.venue || null,
-    url: event.url,
+    // A scene event string holds 1000 characters at most.
+    url: event.url && event.url.length <= 1000 ? event.url : null,
     price: event.price ? truncate(event.price, 300) : event.free ? pick(TEXT, language).free : null,
     summary: event.summary ? truncate(event.summary, 500) : null,
   };
