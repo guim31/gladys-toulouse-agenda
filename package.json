@@ -1,6 +1,6 @@
 {
   "name": "gladys-toulouse-agenda",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Gladys Assistant integration: concerts, shows and exhibitions in Toulouse from open data (OpenAgenda, Toulouse Métropole), as a dashboard widget, scene trigger and scene action.",
   "type": "module",

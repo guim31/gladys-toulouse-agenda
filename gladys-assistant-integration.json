@@ -8,8 +8,8 @@
     "de": "Konzerte, Shows und Ausstellungen in Toulouse: Widget, Hinweise und Wochenendübersicht.",
     "es": "Conciertos, espectáculos y exposiciones en Toulouse: widget, avisos y resumen del fin de semana."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/guim31/gladys-toulouse-agenda:1.0.0",
+  "version": "1.0.1",
+  "docker_image": "ghcr.io/guim31/gladys-toulouse-agenda:1.0.1",
   "gladys_version": ">=5.1.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-toulouse-agenda/main/cover.png",
   "categories": ["services"],
