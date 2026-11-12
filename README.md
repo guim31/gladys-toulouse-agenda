@@ -27,7 +27,7 @@ sandboxed container, publishes no device, and brings a dashboard widget, a scene
 
 ## Requirements
 
-- Gladys Assistant **5.1.0** or later.
+- Gladys Assistant **5.3.0** or later.
 - Internet access from Gladys (`public.opendatasoft.com`, `data.toulouse-metropole.fr`,
   `img.openagenda.com`).
 
