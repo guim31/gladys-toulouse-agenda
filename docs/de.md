@@ -15,7 +15,7 @@ Métropole.
 
 ## Was du brauchst
 
-- Gladys 5.1.0 oder neuer.
+- Gladys 5.3.0 oder neuer.
 - Internetzugang für Gladys: Die Integration lädt die Agenda von
   `public.opendatasoft.com` und `data.toulouse-metropole.fr` und die
   Vorschaubilder von `img.openagenda.com`.

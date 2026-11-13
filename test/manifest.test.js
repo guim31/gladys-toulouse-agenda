@@ -30,10 +30,11 @@ const keysOf = (list) => (list ?? []).map((entry) => entry.key);
 const optionsOf = (field) => field.options.map((option) => option.value);
 const field = (list, key) => list.find((entry) => entry.key === key);
 
-test('a provider integration, cloud, for Gladys 5.1.0 and later', () => {
-  // Widgets, scene triggers and actions and the provider type came with 5.1.0.
+test('a provider integration, cloud, for Gladys 5.3.0 and later', () => {
+  // Widgets, scene triggers and actions and the provider type came with 5.1.0,
+  // the catalog countries with 5.3.0.
   assert.equal(manifest.type, 'provider');
-  assert.equal(manifest.gladys_version, '>=5.1.0');
+  assert.equal(manifest.gladys_version, '>=5.3.0');
   assert.deepEqual(manifest.categories, ['services']);
   assert.deepEqual(manifest.transports, ['cloud']);
   assert.equal(manifest.containers, undefined);
@@ -151,4 +152,9 @@ test('section fields are purely presentational, links https', () => {
       assert.match(link.url, /^https:\/\//);
     }
   }
+});
+
+test('the catalog countries: France, which needs Gladys >= 5.3.0', () => {
+  assert.deepEqual(manifest.countries, ['FR']);
+  assert.match(manifest.gladys_version, /^>=\s*5\.3\.0$/, 'countries needs Gladys 5.3.0');
 });

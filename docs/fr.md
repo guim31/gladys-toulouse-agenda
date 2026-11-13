@@ -14,7 +14,7 @@ communes de la métropole…) et l'agenda « So Toulouse » de Toulouse Métropo
 
 ## Ce qu'il te faut
 
-- Gladys 5.1.0 ou plus récent.
+- Gladys 5.3.0 ou plus récent.
 - Un accès Internet depuis Gladys : l'intégration télécharge l'agenda depuis
   `public.opendatasoft.com` et `data.toulouse-metropole.fr`, et les vignettes
   des événements depuis `img.openagenda.com`.
